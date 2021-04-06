@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><meta><title>Android性能优化实践笔记 - 君子终日乾乾，夕惕若厉，无咎</title><link rel="manifest" href="/manifest.json"><meta name="application-name" content="君子终日乾乾，夕惕若厉，无咎"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="君子终日乾乾，夕惕若厉，无咎"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="description" content="1、绘制原理应用层Android的每个View的绘制中有三个核心步骤：Measure、Layout、Drow 通过measure和layout来确定当前需要绘制的View的大小和位置，通过drow来绘制到surface。绘制源码在ViewRootImp类中的performTraversals()方法实现。  measure：用深度优先原则递归得到所有视图的宽高；获取当前view的正确宽度child"><meta property="og:type" content="blog"><meta property="og:title" content="Android性能优化实践笔记"><meta property="og:url" content="https://mry-byte.github.io/2021/04/06/Android%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%AE%9E%E8%B7%B5%E7%AC%94%E8%AE%B0/"><meta property="og:site_name" content="君子终日乾乾，夕惕若厉，无咎"><meta property="og:description" content="1、绘制原理应用层Android的每个View的绘制中有三个核心步骤：Measure、Layout、Drow 通过measure和layout来确定当前需要绘制的View的大小和位置，通过drow来绘制到surface。绘制源码在ViewRootImp类中的performTraversals()方法实现。  measure：用深度优先原则递归得到所有视图的宽高；获取当前view的正确宽度child"><meta property="og:locale" content="zh_CN"><meta property="og:image" content="https://uploader.shimo.im/f/Dfh31w1PJOvV6OJk.png!thumbnail?fileGuid=TrDkrJWWKJwq6k38"><meta property="og:image" content="https://uploader.shimo.im/f/vXpOQjsHwMNqAt02.png!thumbnail?fileGuid=TrDkrJWWKJwq6k38"><meta property="og:image" content="https://uploader.shimo.im/f/Z5oMUHNxG4xoEuR6.png!thumbnail?fileGuid=TrDkrJWWKJwq6k38"><meta property="article:published_time" content="2021-04-06T05:39:07.656Z"><meta property="article:modified_time" content="2021-04-06T05:38:51.069Z"><meta property="article:author" content="Mr.y"><meta property="article:tag" content="编程"><meta property="article:tag" content="Android"><meta property="twitter:card" content="summary"><meta property="twitter:image" content="https://uploader.shimo.im/f/Dfh31w1PJOvV6OJk.png!thumbnail?fileGuid=TrDkrJWWKJwq6k38"><script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","mainEntityOfPage":{"@type":"WebPage","@id":"https://mry-byte.github.io/2021/04/06/Android%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%AE%9E%E8%B7%B5%E7%AC%94%E8%AE%B0/"},"headline":"君子终日乾乾，夕惕若厉，无咎","image":[],"datePublished":"2021-04-06T05:39:07.656Z","dateModified":"2021-04-06T05:38:51.069Z","author":{"@type":"Person","name":"Mr.y"},"description":"1、绘制原理应用层Android的每个View的绘制中有三个核心步骤：Measure、Layout、Drow 通过measure和layout来确定当前需要绘制的View的大小和位置，通过drow来绘制到surface。绘制源码在ViewRootImp类中的performTraversals()方法实现。  measure：用深度优先原则递归得到所有视图的宽高；获取当前view的正确宽度child"}</script><link rel="canonical" href="https://mry-byte.github.io/2021/04/06/Android%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%AE%9E%E8%B7%B5%E7%AC%94%E8%AE%B0/"><link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.12.0/css/all.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@9.12.0/styles/atom-one-light.css"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;600&amp;family=Source+Code+Pro"><link rel="stylesheet" href="/css/default.css"><style>body>.footer,body>.navbar,body>.section{opacity:0}</style><!--!--><!--!--><!--!--><!--!--><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cookieconsent@3.1.1/build/cookieconsent.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@1.6.8/dist/css/lightgallery.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/css/justifiedGallery.min.css"><!--!--><!--!--><script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script><!--!--><!--!--><meta name="generator" content="Hexo 5.3.0"></head><body class="is-2-column"><nav class="navbar navbar-main"><div class="container"><div class="navbar-brand justify-content-center"><a class="navbar-item navbar-logo" href="/">君子终日乾乾，夕惕若厉，无咎</a></div><div class="navbar-menu"><div class="navbar-start"><a class="navbar-item" href="/">首页</a><a class="navbar-item" href="/archives/">归档</a><a class="navbar-item" href="/categories/">分类</a><a class="navbar-item" href="/tags/">标签</a><a class="navbar-item" href="/about/">关于</a></div><div class="navbar-end"><a class="navbar-item" target="_blank" rel="noopener" title="GitHub" href="https://github.com/Mry-byte/Mry-byte.github.io">GitHub</a><a class="navbar-item search" title="搜索" href="javascript:;"><i class="fas fa-search"></i></a></div></div></div></nav><section class="section"><div class="container"><div class="columns"><div class="column order-2 column-main is-8-tablet is-8-desktop is-8-widescreen"><div class="card"><article class="card-content article" role="article"><div class="article-meta is-size-7 is-uppercase level is-mobile"><div class="level-left"><span class="level-item"><time dateTime="2021-04-06T05:39:07.656Z" title="2021/4/6 下午1:39:07">2021-04-06</time>发表</span><span class="level-item"><time dateTime="2021-04-06T05:38:51.069Z" title="2021/4/6 下午1:38:51">2021-04-06</time>更新</span><span class="level-item"><a class="link-muted" href="/categories/%E7%BC%96%E7%A8%8B/">编程</a></span><span class="level-item">15 分钟读完 (大约2196个字)</span></div></div><h1 class="title is-3 is-size-4-mobile">Android性能优化实践笔记</h1><div class="content"><h3 id="1、绘制原理"><a href="#1、绘制原理" class="headerlink" title="1、绘制原理"></a>1、绘制原理</h3><h4 id="应用层"><a href="#应用层" class="headerlink" title="应用层"></a>应用层</h4><p>Android的每个View的绘制中有三个核心步骤：Measure、Layout、Drow</p>
+<p>通过measure和layout来确定当前需要绘制的View的大小和位置，通过drow来绘制到surface。绘制源码在ViewRootImp类中的performTraversals()方法实现。</p>
+<ul>
+<li>measure：用深度优先原则递归得到所有视图的宽高；获取当前view的正确宽度childWidthMeasureSpec和高度childHeightMeasureSpec，可以调用它的成员函数measure来设置它的大小。</li>
+<li>layout：用深度优先原则递归得到所有视图的位置。当一个view在应用程序窗口左上角的位置确定之后，再结合measure过程中获取的宽高就能确定view在窗口中的布局。</li>
+<li>drow：Android目前支持两种绘制，软件绘制（CPU）和硬件绘制（GPU），其中Android3.0开始支持硬件加速。硬件加速缺点：a、耗电：因为GPU的耗电比CPU的高；b、兼容问题：某些接口和函数不支持硬件加速；c、内存消耗大：使用OpenGL的接口至少需要8MB内存。<a id="more"></a>
+<h4 id="系统层"><a href="#系统层" class="headerlink" title="系统层"></a>系统层</h4></li>
+</ul>
+<p>真正把数据渲染到屏幕上是通过系统进程级进程中的SurfaceFlinger服务来实现的。</p>
+<p>大致步骤：</p>
+<ul>
+<li>响应客户端事件，创建Layer与客户端的Surface的连接；</li>
+<li>接受客户端数据及属性，修改Layer属性，如尺寸、颜色、透明度等；</li>
+<li>将创建的Layer内容刷新到屏幕上；</li>
+<li>维持Layer的序列，并对Layer最终输出做出裁剪计算；</li>
+</ul>
+<p>应用层与系统层的交互，使用了Android的匿名共享内存：SharedClient，每个应用和SurfaceFlinger之间都会创建一个SharedClient。每个SharedClient中最多可创建31个SharedBufferStack（4.1版本以上包含三个缓冲区），一个SharedBufferStack对应一个Surface，也就是一个window。</p>
+<p><img src="https://uploader.shimo.im/f/Dfh31w1PJOvV6OJk.png!thumbnail?fileGuid=TrDkrJWWKJwq6k38" alt="图片"></p>
+<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>应用层绘制到缓存区，系统层SurfaceFlinger则把缓存区数据渲染到屏幕，中间使用SharedClient共享内存传递数据。</p>
+<p><img src="https://uploader.shimo.im/f/vXpOQjsHwMNqAt02.png!thumbnail?fileGuid=TrDkrJWWKJwq6k38" alt="图片"></p>
+<h4 id="刷新机制"><a href="#刷新机制" class="headerlink" title="刷新机制"></a>刷新机制</h4><p>Android4.1 Jelly Bean 引入Project Butter 黄油计划</p>
+<p>FPS：每秒传输帧数，在60FPS以上人眼看屏幕就感觉不到卡顿，意味着每次绘制时长应该控制在16ms（1000ms/60帧）以内。</p>
+<p>三核心元素：VSYNC、Triple Buffer（三级缓冲）和Choreographer（编舞者）</p>
+<ul>
+<li>双缓冲：在SharedBufferStack中有两个缓冲区Front Buffer和Back Buffer。UI总是先在Back Buffer中绘制，然后再和Front Buffer交换，渲染到设备屏幕。即只有当另一个buffer的数据准备好后，通过io_ctcl来通知显示设备切换Buffer。</li>
+<li>VSYNC：Vertical Synchronization（垂直同步），一旦收到VSYNC中断信号，CPU就开始处理各帧数据。</li>
+<li>Choreographer：收到VSYNC信号，调用回调函数。三种类型回调：CALLBACK_INPUT（优先级最高，与输入事件有关）、CALLBACK_ANIMATION（第二优先，与动画有关）、CALLBACK_TRAVERSAL（最低优先级，与UI控件绘制有关）</li>
+</ul>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_29882585/article/details/108419556?fileGuid=TrDkrJWWKJwq6k38">Android屏幕刷新机制</a></p>
+<h3 id="2、卡顿分析工具"><a href="#2、卡顿分析工具" class="headerlink" title="2、卡顿分析工具"></a>2、卡顿分析工具</h3><p>根本原因：1）绘制任务太重，绘制一帧内容耗时太长；2）主线程太忙，导致VSYNC信号来时还没准备好数据导致丢帧；</p>
+<p>UI线程（主线程）主要工作：</p>
+<pre><code>    * UI生命周期控制
+    * 系统事件处理
+    * 消息处理
+    * 界面布局
+    * 界面绘制
+    * 界面刷新
+</code></pre>
+<p>卡顿解决：尽量避免将其他处理放在主线程中，特别是复杂的数据计算和网络请求；</p>
+<p>卡顿检测工具：Profile GPU Rendering（GPU呈现模式分析）</p>
+<p>6.0后将每一帧的渲染过程拆分成了八个步骤，每个步骤一种颜色，每种颜色的意义如下：</p>
+<p><img src="https://uploader.shimo.im/f/Z5oMUHNxG4xoEuR6.png!thumbnail?fileGuid=TrDkrJWWKJwq6k38" alt="图片"></p>
+<p>(1)Swap Buffers：表示处理任务的时间，也可以说是CPU等待GPU完成任务的时间，线条越高，表示GPU做的事情越多；</p>
+<p>(2)Command Issue：表示执行任务的时间，这部分主要是Android进行2D渲染显示列表的时间，为了将内容绘制到屏幕上，Android需要使用Open GL ES的API接口来绘制显示列表，红色线条越高表示需要绘制的视图更多；</p>
+<p>(3)Sync &amp; Upload：表示的是准备当前界面上有待绘制的图片所耗费的时间，为了减少该段区域的执行时间，我们可以减少屏幕上的图片数量或者是缩小图片的大小；</p>
+<p>(4)Draw：表示测量和绘制视图列表所需要的时间，蓝色线条越高表示每一帧需要更新很多视图，或者View的onDraw方法中做了耗时操作；</p>
+<p>(5)Measure/Layout：表示布局的onMeasure与onLayout所花费的时间，一旦时间过长，就需要仔细检查自己的布局是不是存在严重的性能问题；</p>
+<p>(6)Animation：表示计算执行动画所需要花费的时间，包含的动画有ObjectAnimator，ViewPropertyAnimator，Transition等。一旦这里的执行时间过长，就需要检查是不是使用了非官方的动画工具或者是检查动画执行的过程中是不是触发了读写操作等；</p>
+<p>(7)Input Handling：表示系统处理输入事件所耗费的时间，粗略等于对事件处理方法所执行的时间。一旦执行时间过长，意味着在处理用户的输入事件的地方执行了复杂的操作；</p>
+<p>(8)Misc Time/Vsync Delay：表示在主线程执行了太多的任务，导致UI渲染跟不上VSYNC的信号而出现掉帧的情况；</p>
+<p>TraceView 工具：是AndroidSDK自带的工具，用来分析函数调用过程，可以对Android应用程序以及framework层的代码进行性能分析。</p>
+<p>使用方法：1、打开DDMS工具（androidStudio中Android Device Monitor），单击Start Method Profiling按钮开始监控，单击Stop Method Profiling结束监控；2、在需要监控的地方调用android.os.Debug类中提供的方法startMethodTracing()、stopMethodTracing()，保存trace文件来分析。</p>
+<p>SystraceUI性能分析工具：是Android4.1及以上版本提供的性能数据采样和分析工具。</p>
+<h3 id="3、布局优化"><a href="#3、布局优化" class="headerlink" title="3、布局优化"></a>3、布局优化</h3><p>布局优化辅助工具：Hierarchy Viewer和Android Lint(可检查xml布局层级和view的个数)</p>
+<p>优化方法：</p>
+<ul>
+<li>减少层级：合理使用RelativeLayout和LinearLayout，合理使用Merge，使界面尽量扁平化</li>
+<li>提高显示速度：合理使用ViweStub，ViewStub的局限性：仅加载一次，不能按需显隐；仅能加载一个布局，而不是具体的View；</li>
+<li>布局复用：将可复用的组件抽取出来并通过<include/>标签使用；</li>
+</ul>
+<p>优化遵循原则：</p>
+<ul>
+<li>布局的层级越少，加载速度越快。</li>
+<li>减少同一层级控件的数量，加载速度会变快。</li>
+<li>一个控件的属性越少，解析越快</li>
+</ul>
+<p>优化具体方法总结：</p>
+<ul>
+<li>尽量多使用RelativeLayout或LinearLayout</li>
+<li>复用布局使用<include/>标签</li>
+<li>使用<ViewStub/>标签加载一些不常用布局。</li>
+<li>使用<merge/>标签减少布局的嵌套层次。</li>
+<li>尽可能使用固定值，少用wrap_content，会增加布局measure时的计算成本。</li>
+<li>删除控件中无用的属性。<h3 id="4、避免过度绘制"><a href="#4、避免过度绘制" class="headerlink" title="4、避免过度绘制"></a>4、避免过度绘制</h3></li>
+</ul>
+<p>导致过度绘制主要原因：</p>
+<ul>
+<li>xml布局-&gt;控件有重叠且都设置背景</li>
+<li>View自绘-&gt;onDraw()方法里面同一区域被绘制多次</li>
+</ul>
+<p>监测工具：Show GPU Overdraw</p>
+<ul>
+<li>无色：无过度绘制，每个像素绘制一次</li>
+<li>蓝色：每个像素被多绘制了一次</li>
+<li>绿色：每个像素被多绘制了两次</li>
+<li>淡红：每个像素被多绘制了三次</li>
+<li>深红：每个像素被多绘制了四次或更多</li>
+</ul>
+<p>xml布局优化：</p>
+<ul>
+<li>移除xml中非必要的背景，或动态设置背景</li>
+<li>移除Window默认的背景，this.getWindow().setBackgroundDrawable(null);</li>
+<li>按需显示占位背景图片</li>
+</ul>
+</div><div class="article-licensing box"><div class="licensing-title"><p>Android性能优化实践笔记</p><p><a href="https://mry-byte.github.io/2021/04/06/Android性能优化实践笔记/">https://mry-byte.github.io/2021/04/06/Android性能优化实践笔记/</a></p></div><div class="licensing-meta level is-mobile"><div class="level-left"><div class="level-item is-narrow"><div><h6>作者</h6><p>Mr.y</p></div></div><div class="level-item is-narrow"><div><h6>发布于</h6><p>2021-04-06</p></div></div><div class="level-item is-narrow"><div><h6>更新于</h6><p>2021-04-06</p></div></div><div class="level-item is-narrow"><div><h6>许可协议</h6><p><a class="icon" rel="noopener" target="_blank" title="Creative Commons" href="https://creativecommons.org/"><i class="fab fa-creative-commons"></i></a><a class="icon" rel="noopener" target="_blank" title="Attribution" href="https://creativecommons.org/licenses/by/4.0/"><i class="fab fa-creative-commons-by"></i></a><a class="icon" rel="noopener" target="_blank" title="Noncommercial" href="https://creativecommons.org/licenses/by-nc/4.0/"><i class="fab fa-creative-commons-nc"></i></a></p></div></div></div></div></div><div class="article-tags is-size-7 mb-4"><span class="mr-2">#</span><a class="link-muted mr-2" rel="tag" href="/tags/%E7%BC%96%E7%A8%8B/">编程</a><a class="link-muted mr-2" rel="tag" href="/tags/Android/">Android</a></div><div class="notification is-danger">You need to set <code>install_url</code> to use ShareThis. Please set it in <code>_config.yml</code>.</div></article></div><div class="card"><div class="card-content"><h3 class="menu-label has-text-centered">喜欢这篇文章？打赏一下作者吧</h3><div class="buttons is-centered"><a class="button donate" href="/" target="_blank" rel="noopener" data-type="afdian"><span class="icon is-small"><i class="fas fa-charging-station"></i></span><span>爱发电</span></a><a class="button donate" data-type="alipay"><span class="icon is-small"><i class="fab fa-alipay"></i></span><span>支付宝</span><span class="qrcode"><img src="/" alt="支付宝"></span></a><a class="button donate" href="/" target="_blank" rel="noopener" data-type="buymeacoffee"><span class="icon is-small"><i class="fas fa-coffee"></i></span><span>送我杯咖啡</span></a><a class="button donate" href="/" target="_blank" rel="noopener" data-type="patreon"><span class="icon is-small"><i class="fab fa-patreon"></i></span><span>Patreon</span></a><div class="notification is-danger">You forgot to set the <code>business</code> or <code>currency_code</code> for Paypal. Please set it in <code>_config.yml</code>.</div><a class="button donate" data-type="wechat"><span class="icon is-small"><i class="fab fa-weixin"></i></span><span>微信</span><span class="qrcode"><img src="/" alt="微信"></span></a></div></div></div><nav class="post-navigation mt-4 level is-mobile"><div class="level-start"><a class="article-nav-prev level level-item link-muted" href="/2021/04/06/Android%E7%9F%A5%E8%AF%86%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"><i class="level-item fas fa-chevron-left"></i><span class="level-item">Android知识学习笔记</span></a></div><div class="level-end"><a class="article-nav-next level level-item link-muted" href="/2021/04/06/java%E7%9F%A5%E8%AF%86%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"><span class="level-item">Java知识学习笔记</span><i class="level-item fas fa-chevron-right"></i></a></div></nav><div class="card"><div class="card-content"><h3 class="title is-5">评论</h3><div class="notification is-danger">You forgot to set the <code>shortname</code> for Disqus. Please set it in <code>_config.yml</code>.</div></div></div></div><div class="column column-left is-4-tablet is-4-desktop is-4-widescreen  order-1"><div class="card widget" data-type="profile"><div class="card-content"><nav class="level"><div class="level-item has-text-centered flex-shrink-1"><div><figure class="image is-128x128 mx-auto mb-2"><img class="avatar" src="/img/avatar.jpg" alt="Mr.y"></figure><p class="title is-size-4 is-block" style="line-height:inherit;">Mr.y</p><p class="is-size-6 is-block">慎终如始，则无败事</p><p class="is-size-6 is-flex justify-content-center"><i class="fas fa-map-marker-alt mr-1"></i><span>北京</span></p></div></div></nav><nav class="level is-mobile"><div class="level-item has-text-centered is-marginless"><div><p class="heading">文章</p><a href="/archives"><p class="title">17</p></a></div></div><div class="level-item has-text-centered is-marginless"><div><p class="heading">分类</p><a href="/categories"><p class="title">3</p></a></div></div><div class="level-item has-text-centered is-marginless"><div><p class="heading">标签</p><a href="/tags"><p class="title">7</p></a></div></div></nav><div class="level"><a class="level-item button is-primary is-rounded" href="https://github.com/Mry-byte/Mry-byte.github.io" target="_blank" rel="noopener">关注我</a></div><div class="level is-mobile"><a class="level-item button is-transparent is-marginless" target="_blank" rel="noopener" title="Github" href="https://github.com/Mry-byte"><i class="fab fa-github"></i></a><a class="level-item button is-transparent is-marginless" target="_blank" rel="noopener" title="Facebook" href="https://facebook.com"><i class="fab fa-facebook"></i></a><a class="level-item button is-transparent is-marginless" target="_blank" rel="noopener" title="Twitter" href="https://twitter.com"><i class="fab fa-twitter"></i></a><a class="level-item button is-transparent is-marginless" target="_blank" rel="noopener" title="Dribbble" href="https://dribbble.com"><i class="fab fa-dribbble"></i></a><a class="level-item button is-transparent is-marginless" target="_blank" rel="noopener" title="RSS" href="/"><i class="fas fa-rss"></i></a></div></div></div><!--!--><div class="card widget" data-type="links"><div class="card-content"><div class="menu"><h3 class="menu-label">链接</h3><ul class="menu-list"><li><a class="level is-mobile" href="https://google.com" target="_blank" rel="noopener"><span class="level-left"><span class="level-item">Google</span></span><span class="level-right"><span class="level-item tag">google.com</span></span></a></li><li><a class="level is-mobile" href="https://baidu.com" target="_blank" rel="noopener"><span class="level-left"><span class="level-item">Baidu</span></span><span class="level-right"><span class="level-item tag">baidu.com</span></span></a></li></ul></div></div></div><div class="card widget" data-type="categories"><div class="card-content"><div class="menu"><h3 class="menu-label">分类</h3><ul class="menu-list"><li><a class="level is-mobile" href="/categories/%E7%94%9F%E6%B4%BB%E9%9A%8F%E7%AC%94/"><span class="level-start"><span class="level-item">生活随笔</span></span><span class="level-end"><span class="level-item tag">3</span></span></a></li><li><a class="level is-mobile" href="/categories/%E7%BC%96%E7%A8%8B/"><span class="level-start"><span class="level-item">编程</span></span><span class="level-end"><span class="level-item tag">6</span></span></a></li><li><a class="level is-mobile" href="/categories/%E8%AF%BB%E4%B9%A6/"><span class="level-start"><span class="level-item">读书</span></span><span class="level-end"><span class="level-item tag">8</span></span></a></li></ul></div></div></div><div class="card widget" data-type="recent-posts"><div class="card-content"><h3 class="menu-label">最新文章</h3><article class="media"><div class="media-content"><p class="date"><time dateTime="2021-04-06T05:39:07.660Z">2021-04-06</time></p><p class="title"><a href="/2021/04/06/Android%E7%9F%A5%E8%AF%86%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">Android知识学习笔记</a></p><p class="categories"><a href="/categories/%E7%BC%96%E7%A8%8B/">编程</a></p></div></article><article class="media"><div class="media-content"><p class="date"><time dateTime="2021-04-06T05:39:07.656Z">2021-04-06</time></p><p class="title"><a href="/2021/04/06/Android%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%AE%9E%E8%B7%B5%E7%AC%94%E8%AE%B0/">Android性能优化实践笔记</a></p><p class="categories"><a href="/categories/%E7%BC%96%E7%A8%8B/">编程</a></p></div></article><article class="media"><div class="media-content"><p class="date"><time dateTime="2021-04-06T05:39:07.650Z">2021-04-06</time></p><p class="title"><a href="/2021/04/06/java%E7%9F%A5%E8%AF%86%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">Java知识学习笔记</a></p><p class="categories"><a href="/categories/%E7%BC%96%E7%A8%8B/">编程</a></p></div></article><article class="media"><div class="media-content"><p class="date"><time dateTime="2021-02-12T09:18:41.080Z">2021-02-12</time></p><p class="title"><a href="/2021/02/12/%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95/">排序算法</a></p><p class="categories"><a href="/categories/%E7%BC%96%E7%A8%8B/">编程</a></p></div></article><article class="media"><div class="media-content"><p class="date"><time dateTime="2021-02-12T09:01:20.385Z">2021-02-12</time></p><p class="title"><a href="/2021/02/12/%E7%90%86%E5%BF%B5%E7%9A%84%E5%8A%9B%E9%87%8F/">理念的力量-序言</a></p><p class="categories"><a href="/categories/%E8%AF%BB%E4%B9%A6/">读书</a></p></div></article></div></div><div class="card widget" data-type="archives"><div class="card-content"><div class="menu"><h3 class="menu-label">归档</h3><ul class="menu-list"><li><a class="level is-mobile" href="/archives/2021/04/"><span class="level-start"><span class="level-item">四月 2021</span></span><span class="level-end"><span class="level-item tag">3</span></span></a></li><li><a class="level is-mobile" href="/archives/2021/02/"><span class="level-start"><span class="level-item">二月 2021</span></span><span class="level-end"><span class="level-item tag">5</span></span></a></li><li><a class="level is-mobile" href="/archives/2021/01/"><span class="level-start"><span class="level-item">一月 2021</span></span><span class="level-end"><span class="level-item tag">9</span></span></a></li></ul></div></div></div><div class="card widget" data-type="tags"><div class="card-content"><div class="menu"><h3 class="menu-label">标签</h3><div class="field is-grouped is-grouped-multiline"><div class="control"><a class="tags has-addons" href="/tags/Android/"><span class="tag">Android</span><span class="tag">2</span></a></div><div class="control"><a class="tags has-addons" href="/tags/java/"><span class="tag">java</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/%E7%AC%94%E8%AE%B0/"><span class="tag">笔记</span><span class="tag">8</span></a></div><div class="control"><a class="tags has-addons" href="/tags/%E7%AE%97%E6%B3%95/"><span class="tag">算法</span><span class="tag">3</span></a></div><div class="control"><a class="tags has-addons" href="/tags/%E7%BC%96%E7%A8%8B/"><span class="tag">编程</span><span class="tag">5</span></a></div><div class="control"><a class="tags has-addons" href="/tags/%E8%AF%BB%E4%B9%A6/"><span class="tag">读书</span><span class="tag">8</span></a></div><div class="control"><a class="tags has-addons" href="/tags/%E9%9A%8F%E7%AC%94/"><span class="tag">随笔</span><span class="tag">3</span></a></div></div></div></div></div><div class="card widget" data-type="subscribe-email"><div class="card-content"><div class="menu"><h3 class="menu-label">订阅更新</h3><form action="https://feedburner.google.com/fb/a/mailverify" method="post" target="popupwindow" onsubmit="window.open(&#039;https://feedburner.google.com/fb/a/mailverify?uri=&#039;,&#039;popupwindow&#039;,&#039;scrollbars=yes,width=550,height=520&#039;);return true"><input type="hidden" value="" name="uri"><input type="hidden" name="loc" value="en_US"><div class="field has-addons"><div class="control has-icons-left is-expanded"><input class="input" name="email" type="email" placeholder="Email"><span class="icon is-small is-left"><i class="fas fa-envelope"></i></span></div><div class="control"><input class="button" type="submit" value="订阅"></div></div></form></div></div></div><div class="card widget"><div class="card-content"><div class="notification is-danger">You need to set <code>client_id</code> and <code>slot_id</code> to show this AD unit. Please set it in <code>_config.yml</code>.</div></div></div></div><!--!--></div></div></section><footer class="footer"><div class="container"><div class="level"><div class="level-start"><a class="footer-logo is-block mb-2" href="/">君子终日乾乾，夕惕若厉，无咎</a><p class="is-size-7"><span>&copy; 2021 Mr.y</span>  Powered by <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a> &amp; <a href="https://github.com/ppoffice/hexo-theme-icarus" target="_blank" rel="noopener">Icarus</a></p></div><div class="level-end"><div class="field has-addons"><p class="control"><a class="button is-transparent is-large" target="_blank" rel="noopener" title="Creative Commons" href="https://creativecommons.org/"><i class="fab fa-creative-commons"></i></a></p><p class="control"><a class="button is-transparent is-large" target="_blank" rel="noopener" title="Attribution 4.0 International" href="https://creativecommons.org/licenses/by/4.0/"><i class="fab fa-creative-commons-by"></i></a></p><p class="control"><a class="button is-transparent is-large" target="_blank" rel="noopener" title="Download on GitHub" href="https://github.com/ppoffice/hexo-theme-icarus"><i class="fab fa-github"></i></a></p></div></div></div></div></footer><script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/moment@2.22.2/min/moment-with-locales.min.js"></script><script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.4/dist/clipboard.min.js" defer></script><script>moment.locale("zh-CN");</script><script>var IcarusThemeSettings = {
+            article: {
+                highlight: {
+                    clipboard: true,
+                    fold: 'unfolded'
+                }
+            }
+        };</script><script src="/js/column.js"></script><script src="/js/animation.js"></script><a id="back-to-top" title="回到顶端" href="javascript:;"><i class="fas fa-chevron-up"></i></a><script src="/js/back_to_top.js" defer></script><!--!--><!--!--><!--!--><script src="https://cdn.jsdelivr.net/npm/cookieconsent@3.1.1/build/cookieconsent.min.js" defer></script><script>window.addEventListener("load", () => {
+      window.cookieconsent.initialise({
+        type: "info",
+        theme: "edgeless",
+        static: false,
+        position: "bottom-left",
+        content: {
+          message: "此网站使用Cookie来改善您的体验。",
+          dismiss: "知道了！",
+          allow: "允许使用Cookie",
+          deny: "拒绝",
+          link: "了解更多",
+          policy: "Cookie政策",
+          href: "https://www.cookiesandyou.com/",
+        },
+        palette: {
+          popup: {
+            background: "#edeff5",
+            text: "#838391"
+          },
+          button: {
+            background: "#4b81e8"
+          },
+        },
+      });
+    });</script><script src="https://cdn.jsdelivr.net/npm/lightgallery@1.6.8/dist/js/lightgallery.min.js" defer></script><script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js" defer></script><script>window.addEventListener("load", () => {
+            if (typeof $.fn.lightGallery === 'function') {
+                $('.article').lightGallery({ selector: '.gallery-item' });
+            }
+            if (typeof $.fn.justifiedGallery === 'function') {
+                if ($('.justified-gallery > p > .gallery-item').length) {
+                    $('.justified-gallery > p > .gallery-item').unwrap();
+                }
+                $('.justified-gallery').justifiedGallery();
+            }
+        });</script><!--!--><!--!--><!--!--><!--!--><!--!--><script src="/js/main.js" defer></script><div class="searchbox"><div class="searchbox-container"><div class="searchbox-header"><div class="searchbox-input-container"><input class="searchbox-input" type="text" placeholder="想要查找什么..."></div><a class="searchbox-close" href="javascript:;">×</a></div><div class="searchbox-body"></div></div></div><script src="/js/insight.js" defer></script><script>document.addEventListener('DOMContentLoaded', function () {
+            loadInsight({"contentUrl":"/content.json"}, {"hint":"想要查找什么...","untitled":"(无标题)","posts":"文章","pages":"页面","categories":"分类","tags":"标签"});
+        });</script></body></html>
